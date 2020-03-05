@@ -1,5 +1,5 @@
 const ROUTER = require('express').Router();
-const USER = require('../../models/User');
+const USER_MODEL = require('../../models/User');
 const GRAVATAR = require('gravatar');
 const BCRYPT = require('bcryptjs');
 const JWT = require('jsonwebtoken');
@@ -44,7 +44,7 @@ ROUTER.post('/', VALIDATORS, async (request, response) => {
 
   try {
     // Attempt to find the user in the database
-    let user = await USER.findOne({ email });
+    let user = await USER_MODEL.findOne({ email });
     if (user) {
       return response
         .status(400)
@@ -54,7 +54,7 @@ ROUTER.post('/', VALIDATORS, async (request, response) => {
     const AVATAR_OPTIONS = { s: '20', r: 'pg', d: 'mm' };
     const AVATAR = GRAVATAR.url(email, AVATAR_OPTIONS);
     // Instatiate a New User
-    user = new USER({
+    user = new USER_MODEL({
       name,
       email,
       avatar: AVATAR,
@@ -65,7 +65,7 @@ ROUTER.post('/', VALIDATORS, async (request, response) => {
     user.password = await BCRYPT.hash(password, SALT);
     // Save User to database
     await user.save();
-    // Assign and sign JSON Web Token
+    // Configure Payload, Secret, verification and token options to sign JSON Web Token
     const PAYLOAD = {
       user: {
         id: user.id

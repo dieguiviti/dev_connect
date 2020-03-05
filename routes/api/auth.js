@@ -81,7 +81,7 @@ ROUTER.post('/', VALIDATORS, async (request, response) => {
       if (error) throw error;
       response.json({ token });
     };
-
+    // sign and send token with proper payload
     JWT.sign(PAYLOAD, SECRET, TOKEN_OPTIONS, VERIFY_TOKEN_AND_SEND);
 
     // catch server errors
