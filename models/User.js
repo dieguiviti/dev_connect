@@ -26,7 +26,7 @@ const USER_SCHEMA = new SCHEMA({
 });
 
 // Define Model
-const USER_MODEL = MONGOOSE.model('user_model', USER_SCHEMA);
+const USER_MODEL = MONGOOSE.model('user', USER_SCHEMA);
 
 // Export model
 module.exports = USER_MODEL;

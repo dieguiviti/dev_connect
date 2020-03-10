@@ -6,7 +6,8 @@ const DB_URI = CONFIG.get('mongoURI');
 const DB_OPTIONS = {
   useUnifiedTopology: true,
   useNewUrlParser: true,
-  useCreateIndex: true
+  useCreateIndex: true,
+  useFindAndModify: false
 };
 
 // Connect to URI using an asynchronous function

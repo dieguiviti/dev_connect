@@ -2,10 +2,10 @@ const MONGOOSE = require('mongoose');
 const SCHEMA = MONGOOSE.Schema;
 
 // Create Profile Schema
-const USER_PROFILE_SCHEMA = new SCHEMA({
+const PROFILE_SCHEMA = new SCHEMA({
   user: {
     type: MONGOOSE.Schema.Types.ObjectId,
-    ref: 'user_model'
+    ref: 'user'
   },
   company: {
     type: String
@@ -113,7 +113,7 @@ const USER_PROFILE_SCHEMA = new SCHEMA({
 });
 
 // Create UserProfile model
-const USER_PROFILE = MONGOOSE.model('user_profile', USER_PROFILE_SCHEMA);
+const PROFILE_MODEL = MONGOOSE.model('profile', PROFILE_SCHEMA);
 
 // Export
-module.exports = USER_PROFILE;
+module.exports = PROFILE_MODEL;
