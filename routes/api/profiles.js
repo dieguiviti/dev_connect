@@ -27,6 +27,22 @@ const EXPERIENCE_VALIDATORS = [
     .isEmpty()
 ];
 
+// Education Credential Validators
+const EDUCATION_VALIDATORS = [
+  check('school', 'School is required')
+    .not()
+    .isEmpty(),
+  check('degree', 'Degree is required')
+    .not()
+    .isEmpty(),
+  check('fieldOfStudy', 'A study field is required')
+    .not()
+    .isEmpty(),
+  check('from', 'A from date is required')
+    .not()
+    .isEmpty()
+];
+
 //
 //
 //
@@ -268,5 +284,120 @@ ROUTER.put(
     }
   }
 );
+
+/*
+    @Route          DELETE api/profiles/me/experience/:id
+    @Description    Delete experience credential from profile
+    @Access         Private
+*/
+ROUTER.delete('/me/experience/:id', AUTH, async (request, response) => {
+  // Attemp to find corresponding credential and delete data
+  try {
+    // Find target profile in db
+    const TARGET_PROFILE = await PROFILE_MODEL.findOne({
+      user: request.user.id
+    });
+    // Get target profile's experience's index
+    const EXPERIENCE_INDEX = TARGET_PROFILE.experience
+      .map(experience => experience.id)
+      .indexOf(request.params.id);
+    // Splice experiences array
+    TARGET_PROFILE.experience.splice(EXPERIENCE_INDEX, 1);
+    // Save target profile
+    await TARGET_PROFILE.save();
+    // Send response to client
+    response.json(TARGET_PROFILE.experience);
+    //
+  } catch (error) {
+    console.error(error.message);
+    response.status(500).send('Server Error');
+  }
+});
+
+/*
+    @Route          PUT api/profiles/me/education
+    @Description    Add education credentials to profile
+    @Access         Private
+*/
+ROUTER.put(
+  '/me/education',
+  [AUTH, EDUCATION_VALIDATORS],
+  async (request, response) => {
+    const ERRORS = validationResult(request);
+    // Any errors?
+    if (!ERRORS.isEmpty()) {
+      return response.status(400).json({ errors: ERRORS.array() });
+    }
+
+    // Assign education props
+    const {
+      school,
+      degree,
+      fieldOfStudy,
+      from,
+      to,
+      current,
+      description
+    } = request.body;
+
+    // Create new experience object
+    const NEW_EDUCATION = {
+      school,
+      degree,
+      fieldOfStudy,
+      from,
+      to,
+      current,
+      description
+    };
+
+    // Attemp to find corresponding profile and save data
+    try {
+      // Find profile in db
+      const TARGET_PROFILE = await PROFILE_MODEL.findOne({
+        user: request.user.id
+      });
+      // push NEW_EXPERIENCE object to top of experience stack
+      TARGET_PROFILE.education.unshift(NEW_EDUCATION);
+      // Save target profile
+      await TARGET_PROFILE.save();
+      // Send response to client
+      response.json(TARGET_PROFILE.education);
+      //
+    } catch (error) {
+      console.error(error.message);
+      response.status(500).send('Server Error');
+    }
+  }
+);
+
+/*
+    @Route          DELETE api/profiles/me/education/:id
+    @Description    Delete education credential from profile
+    @Access         Private
+*/
+ROUTER.delete('/me/education/:id', AUTH, async (request, response) => {
+  // Attemp to find corresponding credential and delete data
+  try {
+    // Find target profile in db
+    const TARGET_PROFILE = await PROFILE_MODEL.findOne({
+      user: request.user.id
+    });
+    // Get target profile's education's index
+    const EDUCATION_INDEX = TARGET_PROFILE.education
+      .map(education => education.id)
+      .indexOf(request.params.id);
+    // Splice education array
+    TARGET_PROFILE.education.splice(EDUCATION_INDEX, 1);
+    // Save target profile
+    await TARGET_PROFILE.save();
+    // Send response to client
+    response.json(TARGET_PROFILE.education);
+    //
+  } catch (error) {
+    console.error(error.message);
+    response.status(500).send('Server Error');
+  }
+});
 // Export ROUTER
 module.exports = ROUTER;
