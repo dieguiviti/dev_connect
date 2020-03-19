@@ -7,7 +7,7 @@ const POST_SCHEMA = new SCHEMA({
     type: SCHEMA.Types.ObjectId,
     ref: 'user'
   },
-  tesx: {
+  text: {
     type: String,
     required: true
   },
