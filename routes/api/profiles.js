@@ -412,14 +412,12 @@ ROUTER.get('/github/:username', async (request, response) => {
   // Attemp to retrieve user data through github api and assign to user profile
   try {
     // Github api url
-    let url = `https://api.github.com/users/${
-      request.params.username
-    }/repos?per_page=5&sort=created:asc&client_id=${CONFIG.get(
-      'githubClientID'
-    )}&client_secret=${CONFIG.get('githubSecret')}`;
+    let url = `https://api.github.com/users/${request.params.username}/repos?per_page=5&sort=created:asc`;
     // Request's options
     const OPTIONS = {
-      headers: { 'user-agent': 'node.js' }
+      headers: { 'user-agent': 'node.js' },
+      client_id: CONFIG.get('githubClientID'),
+      client_secret: CONFIG.get('githubSecret')
     };
     // AXIOS request's response
     const AXIOS_RESPONSE = await AXIOS.get(url, OPTIONS);
