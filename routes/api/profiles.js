@@ -4,6 +4,7 @@ const CONFIG = require('config');
 const AUTH = require('../../middleware/auth');
 const PROFILE_MODEL = require('../../models/Profile');
 const USER_MODEL = require('../../models/User');
+const COLORS = require('colors');
 const { check, validationResult } = require('express-validator');
 
 // User profile creation required data Validation
@@ -74,7 +75,7 @@ ROUTER.get('/me', AUTH, async (request, response) => {
     // All good, send profile to client
     response.json(PROFILE);
   } catch (error) {
-    console.log(error.message);
+    console.log(`${error.message}`.red.bold);
     response.status(500).send('Server Error');
   }
 });
@@ -152,7 +153,7 @@ ROUTER.post('/', [AUTH, PROFILE_VALIDATORS], async (request, response) => {
 
     //
   } catch (error) {
-    console.error(error.message);
+    console.error(`${error.message}`.red.bold);
     response.status(500).send('Server Error');
   }
 });
@@ -174,7 +175,7 @@ ROUTER.get('/', async (request, response) => {
     response.json(PROFILES);
     //
   } catch (error) {
-    console.error(error.message);
+    console.error(`${error.message}`.red.bold);
     response.status(500).send('Server Error');
   }
 });
@@ -201,7 +202,7 @@ ROUTER.get('/user/:id', async (request, response) => {
     response.json(PROFILE);
     //
   } catch (error) {
-    console.error(error.message);
+    console.error(`${error.message}`.red.bold);
     // Avoid mistaken server errors
     if (error.kind == 'ObjectId') {
       return response.status(400).json({ message: 'Profile not found' });
@@ -225,7 +226,7 @@ ROUTER.delete('/me', AUTH, async (request, response) => {
     response.json({ message: 'User deleted' });
     //
   } catch (error) {
-    console.error(error.message);
+    console.error(`${error.message}`.red.bold);
     response.status(500).send('Server Error');
   }
 });
@@ -281,7 +282,7 @@ ROUTER.put(
       response.json(TARGET_PROFILE.experience);
       //
     } catch (error) {
-      console.error(error.message);
+      console.error(`${error.message}`.red.bold);
       response.status(500).send('Server Error');
     }
   }
@@ -311,7 +312,7 @@ ROUTER.delete('/me/experience/:id', AUTH, async (request, response) => {
     response.json(TARGET_PROFILE.experience);
     //
   } catch (error) {
-    console.error(error.message);
+    console.error(`${error.message}`.red.bold);
     response.status(500).send('Server Error');
   }
 });
@@ -367,7 +368,7 @@ ROUTER.put(
       response.json(TARGET_PROFILE.education);
       //
     } catch (error) {
-      console.error(error.message);
+      console.error(`${error.message}`.red.bold);
       response.status(500).send('Server Error');
     }
   }
@@ -397,7 +398,7 @@ ROUTER.delete('/me/education/:id', AUTH, async (request, response) => {
     response.json(TARGET_PROFILE.education);
     //
   } catch (error) {
-    console.error(error.message);
+    console.error(`${error.message}`.red.bold);
     response.status(500).send('Server Error');
   }
 });
@@ -431,10 +432,10 @@ ROUTER.get('/github/:username', async (request, response) => {
   } catch (error) {
     // Assert error
     if (error.response.status >= 400 && error.response.status < 500) {
-      console.error(error.message);
+      console.error(`${error.message}`.red.bold);
       response.status(404).json({ message: 'Github profile not found' });
     } else {
-      console.error(error.message);
+      console.error(`${error.message}`.red.bold);
       response.status(500).send('Server Error');
     }
   }

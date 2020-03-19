@@ -15,7 +15,7 @@ const CONNECT_DB = async () => {
   try {
     await MONGOOSE.connect(DB_URI, DB_OPTIONS);
 
-    console.log('MongoDB CONNECTED WITH SUCCESS');
+    console.log('MongoDB CONNECTED WITH SUCCESS'.cyan.bold.underline);
   } catch (error) {
     console.log(error.message);
     // Exit process with failure

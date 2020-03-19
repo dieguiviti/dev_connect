@@ -14,7 +14,7 @@ const APP = EXPRESS();
 // Connect to database
 CONNECT_DB();
 
-// Initialize middleware
+// Initialize JSON middleware
 APP.use(EXPRESS.json({ extended: false }));
 
 // Mongoose-morgan
@@ -39,4 +39,6 @@ APP.use('/api/auth', AUTH_ROUTER);
 const PORT = process.env.PORT || 5000;
 
 // Application listen
-APP.listen(PORT, () => console.log(`SERVER IS LISTENING ON PORT: [${PORT}]`));
+APP.listen(PORT, () =>
+  console.log(`SERVER IS LISTENING ON PORT: [${PORT}]`.yellow.bold)
+);
