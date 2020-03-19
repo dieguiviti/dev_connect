@@ -18,19 +18,114 @@ const POST_VALIDATORS = [
 /*
     @Route          GET api/posts
     @Description    GET all posts
-    @Access         Public
+    @Access         Private
 */
-ROUTER.get('/', async (request, response) => {
+ROUTER.get('/', AUTH, async (request, response) => {
   // Attemp to retrieve all posts from database
   try {
     // Assign posts to variable
-    const POSTS = await POST_MODEL.find();
+    const POSTS = await POST_MODEL.find().sort({ date: -1 });
     // respond to client with posts
     response.json(POSTS);
     //
   } catch (error) {
     console.error(`${error.message}`.red.bold);
     response.status(500).send('Server Error');
+  }
+});
+
+/*
+    @Route          GET api/posts/me
+    @Description    GET all posts
+    @Access         Private
+*/
+ROUTER.get('/me', AUTH, async (request, response) => {
+  // Attemp to retrieve all posts from database
+  try {
+    // Assign posts to variable
+    const POSTS = await POST_MODEL.find({ user: request.user.id }).sort({
+      date: -1
+    });
+    // respond to client with posts
+    response.json(POSTS);
+    //
+  } catch (error) {
+    console.error(`${error.message}`.red.bold);
+    response.status(500).send('Server Error');
+  }
+});
+
+/*
+    @Route          GET api/posts/:id
+    @Description    GET single post
+    @Access         Private
+*/
+ROUTER.get('/:id', AUTH, async (request, response) => {
+  // Attemp to retrieve all posts from database
+  try {
+    // Assign post to variable and send to client
+    const POST = await POST_MODEL.findById(request.params.id);
+    if (!POST) {
+      response.status(404).json({ message: 'No such Post' });
+    } else {
+      response.json(POST);
+    }
+    //
+  } catch (error) {
+    if (error.kind === 'ObjectId') {
+      console.error(`\n${error.message}`.red.bold);
+      response.status(404).json({ message: 'No such post' });
+    } else {
+      console.error(error.message);
+      response.status(500).send('Server Error');
+    }
+  }
+});
+
+/*
+    @Route          DELETE api/posts/:id
+    @Description    DELETE single post
+    @Access         Private
+*/
+ROUTER.delete('/:id', AUTH, async (request, response) => {
+  // Attemp to retrieve all posts from database
+  try {
+    // Assign post to variable
+    const POST = await POST_MODEL.findById(request.params.id);
+    // Assert post existence and respond
+    if (!POST) {
+      response.status(404).json({ message: 'No such Post' });
+      //
+    } else if (POST.user.toString() === request.user.id) {
+      // Remove post
+      await POST_MODEL.deleteOne(POST);
+      //
+      // Prepare response:
+      // Get a list of all posts of the authorized user
+      const USER_POSTS = await POST_MODEL.find({ user: request.user.id });
+      // Get count
+      const POSTS_COUNT = await POST_MODEL.find({
+        user: request.user.id
+      }).countDocuments();
+      // Respond
+      response.json({
+        message: 'Post deleted!',
+        posts: { count: POSTS_COUNT, posts: USER_POSTS }
+      });
+      //
+      // User not authorized
+    } else {
+      response.status(404).json({ message: 'You should not be here' });
+    }
+    //
+  } catch (error) {
+    if (error.kind === 'ObjectId') {
+      console.error(`\n${error.message}`.red.bold);
+      response.status(404).json({ message: 'No such post' });
+    } else {
+      console.error(error.message);
+      response.status(500).send('Server Error');
+    }
   }
 });
 
@@ -49,14 +144,13 @@ ROUTER.post('/', [AUTH, POST_VALIDATORS], async (request, response) => {
     // Who is posting?
     let user = await USER_MODEL.findById(request.user.id).select('-password');
     // Create Post object
-    const POST = {
+    const NEW_POST = new POST_MODEL({
       user: request.user.id,
       text: request.body.text,
       name: user.name,
       avatar: user.avatar
-    };
+    });
     // Save post to db
-    const NEW_POST = new POST_MODEL(POST);
     await NEW_POST.save();
     // User's posts
     const USER_POSTS = await POST_MODEL.find({ user: request.user.id });
@@ -66,6 +160,88 @@ ROUTER.post('/', [AUTH, POST_VALIDATORS], async (request, response) => {
   } catch (error) {
     console.error(`${error.message}`.red.bold);
     response.status(500).send('Server Error');
+  }
+});
+
+/*
+    @Route          PUT api/posts/:id/likes
+    @Description    Add Liker to post
+    @Access         Private
+*/
+ROUTER.put('/:id/likes', AUTH, async (request, response) => {
+  // Attempt to find the post and add a liker to likes array
+  try {
+    // Find post
+    const TARGET_POST = await POST_MODEL.findById(request.params.id);
+    if (!TARGET_POST)
+      return response.status(404).json({ message: 'No such post' });
+    // Who's liking it?
+    const LIKER = await USER_MODEL.findById(request.user.id);
+    // Check if user already liked picture
+    if (!TARGET_POST.likes.every(like => like.name !== LIKER.name))
+      return response
+        .status(400)
+        .json({ message: 'You have liked this post already' });
+    // Create like object
+    const NEW_LIKE = {
+      user: request.user.id,
+      name: LIKER.name
+    };
+    // Add like to post
+    TARGET_POST.likes.push(NEW_LIKE);
+    // Save post
+    await TARGET_POST.save();
+    // Respond
+    response.json(TARGET_POST);
+    //
+  } catch (error) {
+    if (error.kind === 'ObjectId') {
+      console.error(`\n${error.message}`.red.bold);
+      response.status(404).json({ message: 'No such post' });
+    } else {
+      console.error(error.message);
+      response.status(500).send('Server Error');
+    }
+  }
+});
+
+/*
+    @Route          PUT api/posts/:id/dislike
+    @Description    Add Liker to post
+    @Access         Private
+*/
+ROUTER.put('/:id/dislike', AUTH, async (request, response) => {
+  // Attempt to find the post and add a liker to likes array
+  try {
+    // Find post and assert
+    let targetPost = await POST_MODEL.findById(request.params.id);
+    if (!targetPost)
+      return response.status(404).json({ message: 'No such post' });
+    //
+    // Whose like are we removing?
+    const DISLIKER = await USER_MODEL.findById(request.user.id).select(
+      '-password'
+    );
+    if (!DISLIKER) return response.status(400).json({ message: 'Bad request' });
+    const DISLIKER_ID = DISLIKER._id.toString();
+    // Create updated likes object
+    const UPDATED_LIKES = targetPost.likes.filter(
+      like => like.user.toString() !== DISLIKER_ID
+    );
+    // Update target post
+    targetPost.likes = UPDATED_LIKES;
+    await targetPost.save();
+    // Respond to client
+    response.json(targetPost);
+    //
+  } catch (error) {
+    if (error.kind === 'ObjectId') {
+      console.error(`\n${error.message}`.red.bold);
+      response.status(404).json({ message: 'No such post' });
+    } else {
+      console.error(error.message);
+      response.status(500).send('Server Error');
+    }
   }
 });
 

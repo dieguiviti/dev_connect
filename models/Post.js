@@ -22,6 +22,9 @@ const POST_SCHEMA = new SCHEMA({
       user: {
         type: SCHEMA.Types.ObjectId,
         ref: 'user'
+      },
+      name: {
+        type: String
       }
     }
   ],
