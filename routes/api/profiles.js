@@ -135,7 +135,6 @@ ROUTER.post('/', [AUTH, PROFILE_VALIDATORS], async (request, response) => {
   // Attemp to find & save profile to db and send response to client
   try {
     let profile = await PROFILE_MODEL.findOne({ user: request.user.id });
-
     // Update
     if (profile) {
       profile = await PROFILE_MODEL.findOneAndUpdate(
