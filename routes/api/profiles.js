@@ -1,4 +1,6 @@
 const ROUTER = require('express').Router();
+const AXIOS = require('axios');
+const CONFIG = require('config');
 const AUTH = require('../../middleware/auth');
 const PROFILE_MODEL = require('../../models/Profile');
 const USER_MODEL = require('../../models/User');
@@ -399,5 +401,44 @@ ROUTER.delete('/me/education/:id', AUTH, async (request, response) => {
     response.status(500).send('Server Error');
   }
 });
+
+/*
+    @Route          GET api/profiles/github/:username
+    @Description    Get user repositories from github
+    @Access         Public
+*/
+ROUTER.get('/github/:username', async (request, response) => {
+  // Attemp to retrieve user data through github api and assign to user profile
+  try {
+    // Github api url
+    let url = `https://api.github.com/users/${
+      request.params.username
+    }/repos?per_page=5&sort=created:asc&client_id=${CONFIG.get(
+      'githubClientID'
+    )}&client_secret=${CONFIG.get('githubSecret')}`;
+    // Request's options
+    const OPTIONS = {
+      headers: { 'user-agent': 'node.js' }
+    };
+    // AXIOS request's response
+    const AXIOS_RESPONSE = await AXIOS.get(url, OPTIONS);
+    // Response to client
+    response.json({
+      count: AXIOS_RESPONSE.data.length,
+      repos: AXIOS_RESPONSE.data
+    });
+    //
+  } catch (error) {
+    // Assert error
+    if (error.response.status >= 400 && error.response.status < 500) {
+      console.error(error.message);
+      response.status(404).json({ message: 'Github profile not found' });
+    } else {
+      console.error(error.message);
+      response.status(500).send('Server Error');
+    }
+  }
+});
+
 // Export ROUTER
 module.exports = ROUTER;
