@@ -1,5 +1,7 @@
 const EXPRESS = require('express');
 const CONNECT_DB = require('./config/db');
+const MONGOOSE_MORGAN = require('./middleware/logger');
+const COLORS = require('colors');
 
 /* Key configuration with dotenv (.env) as an alternative to config
     const DOT_ENV = require('dotenv');
@@ -14,6 +16,9 @@ CONNECT_DB();
 
 // Initialize middleware
 APP.use(EXPRESS.json({ extended: false }));
+
+// Mongoose-morgan
+APP.use(MONGOOSE_MORGAN);
 
 /* Test request
     APP.get('/', (request, response) => response.send('API RUNNING'));
