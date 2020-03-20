@@ -14,6 +14,12 @@ const POST_VALIDATORS = [
     .not()
     .isEmpty()
 ];
+// Comment Validators
+const COMMENT_VALIDATORS = [
+  check('text', 'A text is required')
+    .not()
+    .isEmpty()
+];
 
 /*
     @Route          GET api/posts
@@ -36,7 +42,7 @@ ROUTER.get('/', AUTH, async (request, response) => {
 
 /*
     @Route          GET api/posts/me
-    @Description    GET all posts
+    @Description    GET all owned posts
     @Access         Private
 */
 ROUTER.get('/me', AUTH, async (request, response) => {
@@ -164,6 +170,39 @@ ROUTER.post('/', [AUTH, POST_VALIDATORS], async (request, response) => {
 });
 
 /*
+    @Route          GET api/posts/:id/likes
+    @Description    Get Likes of post
+    @Access         Private
+*/
+ROUTER.get('/:id/likes', AUTH, async (request, response) => {
+  // Attempt to find post and retrieve likes
+  try {
+    // Target Post and assert
+    let targetPost = await POST_MODEL.findById(request.params.id);
+    if (!targetPost)
+      return response.status(404).json({ message: 'No such post' });
+    // Assert likes and invite to if empty
+    if (targetPost.likes.length === 0) {
+      return response.json({
+        message: 'No likes here, be the first one to add one'
+      });
+    } else {
+      // Respond to client
+      response.json(targetPost.likes);
+    }
+    //
+  } catch (error) {
+    if (error.kind === 'ObjectId') {
+      console.error(`\n${error.message}`.red.bold);
+      response.status(404).json({ message: 'No such post' });
+    } else {
+      console.error(error.message);
+      response.status(500).send('Server Error');
+    }
+  }
+});
+
+/*
     @Route          PUT api/posts/:id/likes
     @Description    Add Liker to post
     @Access         Private
@@ -178,21 +217,21 @@ ROUTER.put('/:id/likes', AUTH, async (request, response) => {
     // Who's liking it?
     const LIKER = await USER_MODEL.findById(request.user.id);
     // Check if user already liked picture
-    if (!TARGET_POST.likes.every(like => like.name !== LIKER.name))
+    if (!TARGET_POST.likes.every(like => like.user.toString() !== LIKER.id))
       return response
         .status(400)
         .json({ message: 'You have liked this post already' });
     // Create like object
     const NEW_LIKE = {
-      user: request.user.id,
+      user: LIKER.id,
       name: LIKER.name
     };
     // Add like to post
-    TARGET_POST.likes.push(NEW_LIKE);
+    TARGET_POST.likes.unshift(NEW_LIKE);
     // Save post
     await TARGET_POST.save();
     // Respond
-    response.json(TARGET_POST);
+    response.json(TARGET_POST.likes);
     //
   } catch (error) {
     if (error.kind === 'ObjectId') {
@@ -206,11 +245,11 @@ ROUTER.put('/:id/likes', AUTH, async (request, response) => {
 });
 
 /*
-    @Route          PUT api/posts/:id/dislike
+    @Route          PUT api/posts/:id/unlike
     @Description    Add Liker to post
     @Access         Private
 */
-ROUTER.put('/:id/dislike', AUTH, async (request, response) => {
+ROUTER.put('/:id/unlike', AUTH, async (request, response) => {
   // Attempt to find the post and add a liker to likes array
   try {
     // Find post and assert
@@ -218,22 +257,157 @@ ROUTER.put('/:id/dislike', AUTH, async (request, response) => {
     if (!targetPost)
       return response.status(404).json({ message: 'No such post' });
     //
-    // Whose like are we removing?
-    const DISLIKER = await USER_MODEL.findById(request.user.id).select(
+    // Who is unliking the post?
+    const UNLIKER = await USER_MODEL.findById(request.user.id).select(
       '-password'
     );
-    if (!DISLIKER) return response.status(400).json({ message: 'Bad request' });
-    const DISLIKER_ID = DISLIKER._id.toString();
-    // Create updated likes object
+    // Validate UNLIKER
+    if (!UNLIKER) return response.status(400).json({ message: 'Bad request' });
+    // Create updated likes array
     const UPDATED_LIKES = targetPost.likes.filter(
-      like => like.user.toString() !== DISLIKER_ID
+      like => like.user.toString() !== UNLIKER._id.toString()
     );
-    // Update target post
-    targetPost.likes = UPDATED_LIKES;
-    await targetPost.save();
-    // Respond to client
-    response.json(targetPost);
+    // Check if user liked picture in order to unlike
+    if (UPDATED_LIKES.length === targetPost.likes.length) {
+      return response
+        .status(400)
+        .json({ message: 'You have not liked this picture' });
+    } else {
+      // Update target post
+      targetPost.likes = UPDATED_LIKES;
+      await targetPost.save();
+      // Respond to client
+      response.json(targetPost.likes);
+    }
     //
+  } catch (error) {
+    if (error.kind === 'ObjectId') {
+      console.error(`\n${error.message}`.red.bold);
+      response.status(404).json({ message: 'No such post' });
+    } else {
+      console.error(error.message);
+      response.status(500).send('Server Error');
+    }
+  }
+});
+
+/*
+    @Route          GET api/posts/:id/comments
+    @Description    GET comments of post
+    @Access         Private
+*/
+ROUTER.get('/:id/comments', AUTH, async (request, response) => {
+  // Attempt to find comments and send
+  try {
+    // Target post and assert
+    let targetPost = await POST_MODEL.findById(request.params.id);
+    if (!targetPost)
+      return response.status(404).json({ message: 'No such post' });
+    // Assert comments and invite to if empty
+    if (targetPost.comments.length === 0) {
+      return response.json({
+        message: 'No comments here, be the first one to add one'
+      });
+    } else {
+      // Respond to client
+      response.json(targetPost.comments);
+    }
+    //
+  } catch (error) {
+    if (error.kind === 'ObjectId') {
+      console.error(`\n${error.message}`.red.bold);
+      response.status(404).json({ message: 'No such post' });
+    } else {
+      console.error(error.message);
+      response.status(500).send('Server Error');
+    }
+  }
+});
+
+/*
+    @Route          PUT api/posts/:id/comments
+    @Description    Add comment to post
+    @Access         Private
+*/
+ROUTER.put(
+  '/:id/comments',
+  [AUTH, COMMENT_VALIDATORS],
+  async (request, response) => {
+    // Assert Validators
+    const ERRORS = validationResult(request);
+    if (!ERRORS.isEmpty())
+      return response.status(404).json({ error: ERRORS.array() });
+    // Attempt to find post and comment it
+    try {
+      // Target post and assert
+      let targetPost = await POST_MODEL.findById(request.params.id);
+      if (!targetPost)
+        return response.status(400).json({ message: 'No such post' });
+      // Find Commentator and assert
+      const COMMENTATOR = await USER_MODEL.findById(request.user.id);
+      if (!COMMENTATOR)
+        return response.status(400).json({ message: 'Bad request' });
+      // Create comment object
+      const NEW_COMMENT = {
+        user: COMMENTATOR.id,
+        name: COMMENTATOR.name,
+        avatar: COMMENTATOR.avatar,
+        text: request.body.text
+      };
+      // Update comments array and save
+      targetPost.comments.unshift(NEW_COMMENT);
+      await targetPost.save();
+      // Respond
+      response.json(targetPost.comments);
+      //
+    } catch (error) {
+      if (error.kind === 'ObjectId') {
+        console.error(`\n${error.message}`.red.bold);
+        response.status(404).json({ message: 'No such post' });
+      } else {
+        console.error(error.message);
+        response.status(500).send('Server Error');
+      }
+    }
+  }
+);
+
+/*
+    @Route          PUT api/posts/:id/comments/:comment_id
+    @Description    Remove comment from post
+    @Access         Private
+*/
+ROUTER.put('/:id/comments/:comment_id', AUTH, async (request, response) => {
+  // Attempt to find the post and uncomment
+  try {
+    // Target post and assert
+    let targetPost = await POST_MODEL.findById(request.params.id);
+    if (!targetPost)
+      return response.status(400).json({ message: 'No such post' });
+    // Target comment
+    let comment_to_delete = await targetPost.comments.find(
+      comment => comment.id.toString() === request.params.comment_id
+    );
+    if (!comment_to_delete)
+      return response.status(404).json({ message: 'No such comment' });
+    // create updated comments array
+    if (
+      comment_to_delete.user.toString() === request.user.id ||
+      request.user.id === targetPost.user.toString()
+    ) {
+      const UPDATED_COMMENTS = targetPost.comments.filter(
+        comment => comment.id.toString() !== comment_to_delete.id
+      );
+      targetPost.comments = UPDATED_COMMENTS;
+      await targetPost.save();
+      // Respond
+      return response.json(targetPost.comments);
+      //
+    } else {
+      return response
+        .status(401)
+        .json({ message: 'You cannot delete this comment' });
+    }
   } catch (error) {
     if (error.kind === 'ObjectId') {
       console.error(`\n${error.message}`.red.bold);
