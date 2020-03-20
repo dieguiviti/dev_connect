@@ -35,7 +35,7 @@
     "gravatar": "^1.8.0",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.9.5",
-    "mongoose-morgan": "^1.0.12"
+    "mongoose-morgan": "^1.0.13"
   },
   "devDependencies": {
     "concurrently": "^5.1.0",
